@@ -1,0 +1,323 @@
+使用线程池和不使用线程池的区别：
+如果用for，那么需要创建大量线程，消耗太多资源，还会给垃圾回收器带来压力
+并且系统能创建的线程是有上限的，过多的线程会占用太多内存
+
+线程池的好处：
+1：加快响应速度（不需要反复创建线程，大大减少现成的创建和销毁次数）
+2：合理利用cpu和内存
+3：统一管理资源
+
+三种常见的队列类型：
+SynchronousQueue
+LinkedBlockingQueue（无界）
+ArrayBlockingQueue
+
+线程工厂主要是为了设置线程的属性：线程名，线程优先级，是否是守护线程
+
+下面演示FixedPool的用法：
+package executorsTest;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class FixedPool {
+	public static void main(String[] args) {
+		ExecutorService executorService = Executors.newFixedThreadPool(4);
+		for(int i=0;i<1000;i++) {
+			executorService.execute(new Task());
+		}
+	}
+}
+class Task implements Runnable{
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		System.out.println(Thread.currentThread().getName());
+	}
+	
+}
+
+结果：
+pool-1-thread-1
+pool-1-thread-4
+pool-1-thread-3
+pool-1-thread-2
+pool-1-thread-2
+pool-1-thread-3
+pool-1-thread-4
+pool-1-thread-1
+pool-1-thread-4
+pool-1-thread-3
+pool-1-thread-2
+pool-1-thread-3
+pool-1-thread-4
+pool-1-thread-1
+pool-1-thread-4
+pool-1-thread-3
+
+但是如果LinkedBlockingQueue请求堆积占用大量的内存的时候，可能会导致内存溢出.
+package executorsTest;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class FixedPool {
+	public static void main(String[] args) {
+		ExecutorService executorService = Executors.newFixedThreadPool(1);
+		for(int i=0;i<Integer.MAX_VALUE;i++) {
+			executorService.execute(new Task());
+		}
+	}
+}
+class Task implements Runnable{
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		try {
+			Thread.sleep(10000000000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//System.out.println(Thread.currentThread().getName());
+	}
+	
+}
+这样的代码会内存溢出
+
+newSingleThreadPool:一个线程
+
+newCachedThreadPool：里面的queue是SynchronousQueue直接交换的队列，也就是没有队列
+可以缓存，无界，自动回收多余的线程，有多余的任务就多创建线程，但是没有任务的时候就会回收多余的线程
+
+newScheduledThreadPool：延迟线程池，适合做一些跟时间相关的任务，使用DelayedWorkQueue
+线程池里的线程数量设定为多少比较合适：
+CPU密集型：Cpu核心数的1到2倍
+耗时IO型：cpu的多倍
+总之：线程数=cpu核心数*（1+平均等待时间/平均工作时间）
+
+workStealingPool：可并行执行，每个线程都有自己的子任务队列，能执行子任务，也能帮助别的线程执行子任务，但执行顺序不能保证，适用于递归任务
+
+停止线程池的正确方法：
+1：shutdown：等线程池正在执行的任务和队列中等待的任务执行完成之后才会把线程关闭
+
+2：isShutdown：返回boolean值判断是不是进入停止状态了，而不是没有线程在执行了。
+
+3：isTerminated：返回boolean值判断是不是完全停止了。
+
+4：awaitTermination：测试线程池是否在一段时间内把任务都执行完毕了
+
+5:shutdownNow：立刻把线程池关闭掉，对于正在执行的任务给出中断信号，在队列中的任务会被返回，别的任务会被拒绝。
+
+拒绝策略：
+1：线程池关闭
+2：线程占满了队列也满了
+
+策略：
+1：AbortPolicy抛出异常
+2：DiscardPlocy默默丢弃
+3：DiscardOldestPolicy：丢弃最老的
+4：CallerRunsPolicy：让主线程去运行。
+
+钩子方法：如beforeExecute可以在每个线程执行前进行动作
+
+
+ThreadLocal详解
+
+应用场景：
+1：每个线程需要一个独享的对象
+2：每个线程内需要保存全局变量，避免传参
+
+1：每个线程需要一个独享的对象
+不同线程操纵同一个对象的时候，如果该对象不是线程安全的，
+那么就会产生线程安全问题，这是可以考虑用到ThreadLocal
+
+2：
+
+threadLocal带来的好处：
+1：每个线程自己有一个对象，达到线程安全
+2：不需要加锁，提高执行效率
+3：高效利用内存
+4：避免传参的繁琐（直接get），使得代码耦合度相当低（这TM才叫代码）
+
+
+一个线程有一个threadLocalMap，一个threadLocalMap里面有多个threadLocal
+
+initialValue方法：
+1：会返回当前线程对应的“初始值”，这是一个延迟加载的方法，只有在调用get
+的时候，才会触发，remove之后可以在调用get以调用initialValue
+
+2：当线程第一次使用get方法访问变量时，将调用此方法，除非线程先前调用了set
+方法，在这种情况下，不会为线程调用本initialValue方法。
+
+set（）为这个这个线程设置一个新值
+
+get（）：
+打开ThreadLocalMap取出对应的ThreadLocal，然后调用map.getEntry
+方法，把本ThreadKicak的引用作为参数传入，取出map中属于本ThreadLocal的value
+
+注意，这个map以及map中的key和value都是保存在线程中的，而不是保存在ThreadLocal中
+
+ThreadLocalMap类：
+冲突处理：线性探测法：找下一个空位置。
+
+ThreadLocal使用注意点：
+1：内存泄漏（Value的泄露），可以使用完ThreadLocal之后调用remove方法，就可以避免。
+2：空指针异常：get之前要set或者重写initialValue
+3：共享对象：如果在每个线程中ThreadLocal.set()进去的东西本来就是多线程共享的同一个对象，
+比如static对象，那么多个线程的ThreadLocal.get（）取得的还是这个共享对象本身，还是有并发访问问题
+
+
+
+为什么需要Lock
+synchronized不够用
+1：效率低：锁的释放情况少，试图获得锁的时候不能设定超时
+2：不够灵活，加锁和释放的时机单一。
+3：无法知道是否成功获得了锁
+
+lock（）不会像synchronized一样异常的时候释放锁，所以最佳实践是在finnally中释放锁
+他没有获取到锁的时候会永久等待
+
+tryLock（）用来尝试获取锁，取到了返回true，否则返回false，该方法立即返回，但是可以通过设置参数来设置超时时间
+
+tryLock来避免死锁：
+package lock;
+
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class TryLockDeadLock implements Runnable {
+
+	int flag = 1;
+	static Lock lock1 = new ReentrantLock();
+	static Lock lock2 = new ReentrantLock();
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		for (int i = 0; i < 100; i++) {
+			if (flag == 1) {
+				try {
+					if (lock1.tryLock(800, TimeUnit.MILLISECONDS)) {
+						try {
+							System.out.println("线程1获得了锁1");
+							Thread.sleep(new Random().nextInt(1000));
+							if(lock2.tryLock(800, TimeUnit.MILLISECONDS)) {
+								try {
+									System.out.println("线程1获取到了锁2");
+									System.out.println("线程一成功获取到了两把锁");
+									break;
+								}finally {
+									lock2.unlock();
+								}
+							}else {
+								System.out.println("线程1获取锁2失败，以重试");
+							}
+						} finally {
+							lock1.unlock();
+							Thread.sleep(new Random().nextInt(1000));
+						}
+					} else {
+						System.out.println("线程1获取锁1失败，已重试");
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			if(flag==0) {
+				try {
+					if (lock2.tryLock(3000, TimeUnit.MILLISECONDS)) {
+						try {
+							System.out.println("线程2获得了锁2");
+							Thread.sleep(new Random().nextInt(1000));
+							if(lock1.tryLock(3000, TimeUnit.SECONDS)) {
+								try {
+									System.out.println("线程二获取到了锁1");
+									System.out.println("线程2成功获取到了两把锁");
+									break;
+								}finally {
+									lock1.unlock();
+								}
+							}else {
+								System.out.println("线程2获取锁1失败，以重试");
+							}
+						} finally {
+							lock2.unlock();
+							Thread.sleep(new Random().nextInt(1000));
+						}
+					} else {
+						System.out.println("线程2获取锁2失败，已重试");
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	public static void main(String[] args) {
+		TryLockDeadLock deadLock1 = new TryLockDeadLock();
+		TryLockDeadLock deadLock2 = new TryLockDeadLock();
+		deadLock1.flag = 1;
+		deadLock1.flag = 0;
+		new Thread(deadLock1).start();
+		new Thread(deadLock2).start();
+	}
+}
+
+lockInterruptibly（）相当于tryLock（）超时时间设置为无限，在等待所的过程中线程可以被中断
+
+
+互斥同步锁的劣势：
+1：阻塞和唤醒带来的性能劣势
+2：永久阻塞，可能会死锁
+3：优先级反转
+
+所以有了乐观锁和悲观锁
+
+乐观锁：CAS,如原子类，并发容器等
+悲观锁：老子抢到了你就得等待，如synchronized和lock，数据库的select for update
+
+开销对比：
+悲观锁的原始开销要高于乐观锁，但是就算临界区持锁时间原来越长，也不会对互斥锁的开销造成影响
+相反，乐观锁一开始的开销比悲观锁小，但是如果自旋时间很长或者不停重试，那么消耗的资源也会越来越多
+
+使用场景
+悲观锁：适合并发写入多的情况，适用于临界区持锁时间比较长的情况，避免大量无用自旋
+1：临界区有IO操作
+2：临界区代码复杂或者循环量大
+3：临界区竞争激烈
+
+乐观锁：适合并发写入少，大部分是读取的场景
+
+
+ReentrantLock可重入性质：同一个线程可以多次获取同一把锁，像lock（）上几次锁就得开几次锁
+好处：避免死锁
+
+公平锁和非公平锁
+公平指的是按照线程请求的顺序来分配锁，非公平是不完全按照请求的顺序，在一定情况下，可以插队
+适当的“不公平”是可以提高吞吐量的，该获取到锁的线程如果在执行别的任务，那么允许其他线程插队
+
+tryLock（）自带插队属性。
+
+共享锁和排它锁：
+排它锁又叫独占锁，独享锁
+
+共享锁：又称为读锁，获得共享锁之后，可以查看但无法修改和删除数据，其他线程此时也可以获取到共享锁
+
+ReentrantReadWriteLock中，读锁是共享锁，写锁是独享锁
+读写锁只是一把锁，不能同时进行读锁定和写锁定
+
+读锁和写锁的交互方式：
+读锁插队策略：
+1：读锁就可以插队
+2：读锁也得排队（ReentrantReadLock的实现）
+
+公平锁：不允许插队
+非公平锁：
+写锁可以随时插队，读锁仅在等待对列头结点不是想获取写锁的线程的时候可以插队
+
+

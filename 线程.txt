@@ -1,0 +1,71 @@
+实现多线程的方式：两种
+一：实现Runnable接口，并把Runnable实例传给Thread类
+二：继承Thread类
+
+对比：
+方法一更好
+三个角度对比：
+耦合；
+java不支持多继承；
+如果用继承，每次新建一个独立的任务只能新建一个线程，耗费资源大
+本质对比：
+方法一：源码最终调用target.run()
+方法二：run()整个都被重写
+
+如果两个方法一起用，执行Thread的run
+public static void main(String[] args) {
+		new Thread(
+				new Runnable() {
+					
+					@Override
+					public void run() {
+						// TODO Auto-generated method stub
+						System.out.println("我来自Runnable");
+					}
+				}) {
+			@Override
+			public void run() {
+				System.out.println("我来自Thread");
+			}
+		}.start();
+	}
+
+常见面试问题：一：有多少种实现线程的方法
+1：不同角度答案不同
+2：典型答案是两种
+3：本质一样
+4：具体展开说其他方式
+5：结论
+
+二：对比哪个方法更好
+1：代码架构角度
+2：新建线程的损耗
+3：java不支持多继承
+
+
+启动线程的正确和错误方式
+start()正确
+run（）错误
+
+start()源码解析
+1：检查新线程状态
+2：加入线程组
+3：调用start0（）
+
+面试问题：
+一个线程调用两次start（）方法会出现什么情况？为什么？
+答：抛异常，看源码
+
+
+如何正确停止线程：
+原理：使用interrupt来通知，而不是强制
+
+被弃用的方法：stop，suspend，resume，用volatile设置boolean标记位
+
+两种情况下会停止线程：
+1：run方法执行完了
+2：异常出现，并且方法没有捕获
+
+
+
+
