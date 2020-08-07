@@ -1,0 +1,476 @@
+‘字段’：表明这是一个字段，不是关键字
+起别名：
+1：as
+2：空格
+
+去重：加distinct
+
+字符连接: concat
+
+like:
+%匹配任意个字符 
+_一个
+\表示转义
+可以自定义转义符号，用escape
+
+in里面不能用通配符，因为in等价于=
+
+is 常常和null一起用
+
+<=>安全等于   既可以判断null，又可以判断普通数值
+
+排序：
+order by:
+desc:降序
+asc:升序
+SELECT salary FROM `employees` ORDER BY salary DESC;
+如果不指定desc和asc，按asc处理
+可以复合应用，先降序，再升序
+只有limit可以放在order by的后面
+
+函数:concat是连接字符
+IFNULL有两个参数，第一个判断，第二个给默认值
+LENGTH:只有一个参数，显示长度
+
+SELECT salary FROM `employees` ORDER BY salary DESC, `employee_id` ASC;
+
+查看当前字符集
+SHOW VARIABLES LIKE '%char%';
+
+utf-8汉字占三个字节
+
+upper:字符边大写
+lower:字符变小写
+
+substr():mysql中的索引是从1开始的
+SELECT SUBSTR('我是你爸爸',4) AS output;  结果:爸爸
+
+instr:返回子串在大字符串中的开始索引
+SELECT INSTR('aaaabbbbcdgt','b') AS outpit;
+如果找不到就返回-1;
+
+trim:去掉前后空格，也可以去掉前后指定字符，语法有点奇怪
+SELECT TRIM('a' FROM 'aaaaabbbbbaaaaabbbbbaaaaaa  ') AS outpat;
+
+lpad用指定的字符实现左填充指定长度
+rpad用指定的字符实现左填充指定长度
+SELECT RPAD('孟原',12,'aksufhkajsf') AS output;
+填充到指定长度
+
+replace是替换
+
+数学函数：round()四舍五入
+
+日期函数:
+SELECT NOW();返回日期加时间
+curdate()返回日期不包含时间
+curtime()返回时间不包含日期
+
+还有很多：year(),month(),monthname()
+
+str_to_date:字符转日期
+
+date_format:日期转字符
+
+if(判断条件，真动作，假动作)
+
+case: when when when else end
+
+SELECT salary AS 原始工资,department_id,
+CASE department_id
+WHEN 30 THEN salary*1.1
+WHEN 40 THEN salary*1.2
+WHEN 50 THEN salary*1.3
+WHEN 60 THEN salary*1.4
+ELSE salary
+END AS 新工资
+FROM employees;
+如果是多重判断，case后面不加变量
+
+聚合函数:
+sum求和，avg平均值，max最大值，min最小值，count计算个数，他们都只返回一个值
+
+可以和dinstinct搭配
+SELECT SUM(DISTINCT salary),SUM(salary) FROM employees;
+count(*)常常用来统计总行数
+
+datediff(日期，日期):求相差天数
+
+分组查询：group by
+对分组后的结果进行筛选要用having
+SELECT COUNT(*),department_id 
+FROM employees
+GROUP BY department_id
+HAVING COUNT(*)>2;
+
+分组前的筛选放group by 前
+分组函数做条件肯定是放在having子句中
+SELECT COUNT(*),LENGTH(last_name) AS lastname
+FROM employees
+GROUP BY lastname
+HAVING COUNT(*)>5;
+
+多表查询：
+查询的字段涉及到多个表
+
+自连接:
+SELECT e.last_name,m.last_name
+FROM employees e INNER JOIN
+employees m ON
+e.`manager_id` = m.`employee_id`
+WHERE e.`last_name` LIKE '%m%';
+
+外链接的查询结果为主表中的所有记录
+如果从表中有和他匹配的，则显示匹配的值
+如果从表中没有和他匹配的，则显示null
+外链接的查询结果=内连接结果+主表中有而从表中没有的记录
+
+左外连接，left join左边的是主表
+右外连接，right join右边的是主表
+
+标量子查询：查询出来的结果一行一列
+谁的工资比Abel高
+SELECT * FROM employees 
+WHERE salary >(
+SELECT salary
+FROM employees 
+WHERE last_name = 'Abel');
+
+SELECT last_name,job_id,salary
+FROM employees
+WHERE job_id = (
+SELECT job_id
+FROM employees 
+WHERE employee_id=141) AND salary > (
+SELECT salary
+FROM employees
+WHERE employee_id = 143)
+
+总结：子查询的查询条件优于主查询
+
+列子查询:(多行子查询)
+需要使用多行比较操作符:in,not in,any,some,all
+
+SELECT last_name
+FROM employees
+WHERE salary<ANY(
+SELECT DISTINCT salary
+FROM employees
+WHERE job_id = 'IT_PROG'
+) AND job_id<>'IT_PROG'
+
+<>表示不等于
+
+行子查询：一行多列或者是多行多列
+
+  SELECT 
+	* 
+      FROM
+        employees 
+      WHERE (employee_id, salary) = (
+      SELECT MIN(employee_id),MAX(salary)
+      FROM employees
+      )
+
+select后面的子查询：仅支持标量子查询
+查询每个部门的员工个数
+
+SELECT d.*,(
+	SELECT COUNT(*)
+	FROM employees AS e
+	WHERE e.`department_id` = d.department_id
+      ) AS geshu FROM departments AS d;
+
+from后面的子查询：
+子查询的结果充当一张表，要求必须起别名
+
+exists：结果只有0或1
+
+limit：分页查询 第一个参数是起始索引，第二个参数是个数
+
+联合查询：union
+union会自动去重
+不想去重：
+SELECT * FROM employees WHERE email LIKE '%a%'
+UNION ALL
+SELECT * FROM employees WHERE department_id>90;
+
+插入：
+方式1：
+INSERT INTO beauty 
+(`id`,`name`,`sex`,`borndate`,`phone`,`photo`,`boyfriend_id`) 
+VALUES
+ (13,'许珂','女','1999-8-3','15139641866',NULL,2);
+也可以省略列名，但是要一一对应
+
+方式2：
+ INSERT INTO beauty
+ SET id=14,NAME='刘涛',phone='999';
+
+方式一支持插入多行，支持子查询
+
+修改：update 
+修改单表:UPDATE beauty SET NAME='孟轲' WHERE id=14;
+修改多表: UPDATE boys bo INNER JOIN beauty b ON bo.`id` = b.`boyfriend_id`
+ SET b.`phone`='114'
+ WHERE bo.`boyName` = '张无忌'
+
+create database if not exists 名字
+
+修改表
+修改列名字:ALTER TABLE book CHANGE COLUMN publishdate pub VARCHAR(20);
+
+修改列的类型:ALTER TABLE book MODIFY COLUMN pub DATETIME;
+
+添加列:ALTER TABLE book ADD COLUMN  annual DOUBLE;
+
+删除列:ALTER TABLE book DROP COLUMN annual ;
+
+表的删除:
+drop table if exists book_author ;
+
+表的复制:
+1:仅仅复制表的结构:
+CREATE TABLE copy1 LIKE book;
+
+2:复制表的数据
+CREATE TABLE copy2 SELECT * FROM book;
+
+重命名表：
+ALTER TABLE book RENAME TO books;
+
+6大约束：
+	1：not null：
+	2：default：
+	3：primary key，使字段具有唯一性，非空性。
+	4：unique：保证唯一性
+	5：check：mysql不支持
+	6：foreign key:外键，值必须来自主表关联值
+列级约束：都支持，但是外键约束没有效果
+
+CREATE TABLE stuinfo(
+	id INT PRIMARY KEY,
+	stuName VARCHAR(20) NOT NULL,
+	gender CHAR(1) CHECK(gender='男' OR gender ='女'),
+	seat INT uniqu`stuinfo`e,
+	age INT DEFAULT 18,
+	majorId INT REFERENCES major(id)
+);
+
+
+表级约束：除了非空，默认，其他的都支持
+
+CREATE TABLE stuinfo(
+	id INT,
+	stuName VARCHAR(20),
+	gender CHAR(1),
+	seat INT,
+	age INT,
+	majorId INT,
+	
+	CONSTRAINT pk PRIMARY KEY(id),
+	CONSTRAINT uq UNIQUE(seat),
+	CONSTRAINT ck CHECK(gender ='男' OR gender='女'),
+	CONSTRAINT fk_stuinfo_major FOREIGN KEY (majorid) REFERENCES major(id)
+	
+);
+
+标识列：又叫自增长列，可以不用手动的插入值，系统提供默认的序列值
+标识列必须是key且最多只能有一个
+id int primary key auto_increment;
+
+事务:
+四个特性:原子,一致,隔离，持久
+
+mysql支持4种事务隔离级别
+1:repeatable read：可避免脏读，不可重复读
+2:read uncommitted:啥都避免不了
+3:read commited：可以避免脏读
+4:serializable：避免脏读，不可重复读，幻读
+SELECT @@tx_isolation;可以查看隔离级别
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;设置隔离级别
+
+设置保存点：
+SET autocommit = 0;
+START TRANSACTION;
+DELETE FROM stuinfo WHERE id = 1;
+SAVEPOINT a;
+DELETE FROM stuinfo WHERE id = 1;
+ROLLBACK TO a;
+
+视图：
+虚拟表，和普通表一样使用。
+视图的创建：
+CREATE VIEW myv1
+AS
+SELECT * FROM employees;
+
+视图的使用
+SELECT * FROM myv1 WHERE employee_id = 101;
+
+视图的修改：
+1:create or replace view 视图名
+2:alter view 视图名 as 查询语句
+
+视图的查看：
+1:show create view 视图名;
+2:desc 视图名;
+
+视图的删除:
+drop view 视图名;
+
+视图的更新：
+一般不更新
+
+视图和表的对比：
+视图不占用物理空间（只保存逻辑）
+
+trancate和delete在事务使用时的区别
+trancate不能回滚，直接提交
+
+为某个会话变量赋值：
+set @@session.变量名=变量值；
+
+用户声明变量并且初始化：
+set @用户变量名=值;
+set @用户变量名:=值;
+select @用户变量名:=值;
+
+赋值：
+方式一:set @用户变量名=值;
+set @用户变量名:=值;
+select @用户变量名:=值;
+
+方式二:
+select 字段 into @变量名;
+
+局部变量:
+声明:
+declare 变量名 类型;
+declare 变量名 类型 default 值;
+赋值:
+set 局部变量名=值;
+set 局部变量名:=值;
+select @局部变量名:=值;
+使用:
+select 局部变量名;
+只能在begin end中使用
+
+存储过程：一组预先编译好的sql语句的集合，理解成批处理语句
+
+创建语法:
+
+CREATE PROCEDURE 存储过程名（参数列表）
+BEGIN
+	参数过程体
+END
+
+参数列表包含三部分：
+参数模式， 参数名， 参数类型
+in stuname varchar(20)
+
+参数模式:
+in:作为输入值
+out:作为输出值
+inout:都可以
+
+调用存储过程：
+call 存储过程名(参数列表)
+
+模板：
+DELIMITER $
+CREATE PROCEDURE myp8(INOUT a INT,INOUT b INT)
+BEGIN
+	SET a=a*2;
+	SET b=b*2; 
+END $
+
+SET @m = 5;
+SET @n = 10;
+
+CALL myp8(@m,@n);
+
+SELECT @m,@n;
+
+删除存储过程：每次只能删除一个：
+DROP PROCEDURE myp8;
+
+查看存储过程的信息：
+SHOW CREATE PROCEDURE myp8;
+
+存储过程里的逻辑语句不能修改
+
+
+str_to_date:字符转日期
+DATE_FORMAT(日期格式，'%y%m%d'):把日期转换成字符串
+datediff：返回两个时间的时间差
+
+函数：有且仅有一个返回
+
+无参数有返回：
+DELIMITER $
+CREATE FUNCTION myf1() RETURNS INT
+BEGIN
+	DECLARE c INT DEFAULT 0;
+	SELECT COUNT(*) INTO c FROM employees;
+	RETURN c;
+END
+有参数有返回：
+DELIMITER $
+CREATE FUNCTION myf2(empName VARCHAR(20)) RETURNS DOUBLE
+BEGIN
+	SET @sal = 0;
+	SELECT salary INTO @sal FROM employees WHERE last_name = empName;
+	RETURN @sal;
+END $
+调用：SELECT myf2('Nayer');
+
+函数的查看：
+SHOW CREATE FUNCTION myf2;
+
+流程控制结构:
+if(判断条件，if，else);
+
+1:case 表达式:when when then when then when then else end case;
+
+
+2:case:when when then when then when then else end case;
+DELIMITER $
+CREATE PROCEDURE test_case(IN score INT)
+BEGIN
+	CASE
+	WHEN score>90 THEN SELECT 'A';
+	WHEN score>80 THEN SELECT 'B';
+	ELSE SELECT 'C';
+	END CASE;
+END $
+
+if:
+CREATE FUNCTION iff(score INT) RETURNS CHAR
+BEGIN
+	IF score>90 THEN RETURN 'a';
+	ELSEIF score>80 THEN RETURN 'b';
+	ELSE RETURN 'c';
+	END IF;
+END $
+循环：while
+DELIMITER $
+CREATE PROCEDURE pro_while1(IN insertCount INT)
+BEGIN
+	DECLARE i INT DEFAULT 1;
+	WHILE i<insertCount DO
+		INSERT INTO books VALUES (i,'aaa','2002-7-5',2.12);
+		SET i=i+1;
+	END WHILE;
+END $
+
+repeat：
+repeat
+	语句
+until	条件
+end repeat $
+
+loop:没有条件的死循环
+loop
+	语句
+end loop $

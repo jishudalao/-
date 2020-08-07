@@ -1,0 +1,106 @@
+网络：
+协议：http
+域名/ip：www.google.com
+端口：80
+路径：search
+参数：q=test&safe=strict
+
+根域名：.root
+顶级域名：.com  .edu  .org
+次级域名： .google
+主机名：www
+
+dns查询方法：
+1：递归
+2：迭代
+
+协议：实体层，链路层，网络层，传输层，应用层
+数据包格式：
+	链路层：帧：Ethernet标头  Ethernet数据
+	网络层：帧》Ethernet标头， Ethernet数据（IP标头，IP数据）
+	传输层：帧》Ethernet标头， Ethernet数据（IP标头，IP数据（TCP/UDP数据））
+	应用层:   帧》Ethernet标头， Ethernet数据（IP标头，IP数据（TCP/UDP标头，应用层数据）
+	
+网络编程的本质是进程间的通信
+
+io流分字符流和字节流
+
+字符流：Reader，Writer
+
+Reader：CharArrayReader，StringReader
+叠加Reader：BufferedReader  FilterReader InputStreamReader>FileReader
+
+字节流：
+InputStream : ByteArrayInputStream  FileInputStream
+叠加InputStream: BufferedInputStream  DataInputStream
+
+
+java提供的创建线程池的方法
+
+Executors>>newSingleThreadExecutor    newFixedThreadPool  newCachedPool  new ScheduledThreadPool
+
+
+ServerSocket表示服务器的Socket
+Socket表示浏览器的Socket
+
+BIO中的阻塞
+ServerSocket.accept()是阻塞的
+InputStream和OutputStream也是阻塞的
+无法在同一个线程里处理多个Stream I/O
+
+NIO
+使用Channel代替Stream
+Channel没有方向，既可以输入又可以输出
+
+使用Selector监控多条Channel
+
+可以在一个线程里处理多个Channel I/O
+
+Buffer:代表一段内存中我们可以读取的区域
+
+Channel之间也可以直接传输数据，不需要Buffer
+
+Channel包括:FileChannel,ServerSocketChannel,SocketChannel
+
+AIO返回
+1:FUTRUE
+2:CompletionHandler
+
+
+动态资源：随着请求发起方，发起时间，请求内容等因素而变化
+静态资源相反
+
+请求动态资源：
+客户端》》服务器》》容器》》servlet
+然后原路返回
+
+Tomcat结构
+从外到内：Server>>Service,Connector,Processor>>Engine>>Host>>Context>>Wrapper>>Servlet
+
+Server:最顶层组件，负责运行Tomcat,负责加载服务器资源和环境变量
+
+Service:集合Connector和Engine得抽象组件，一个Server可以包含多个Service
+一个Service可以包含多个Connector和Engine
+
+Connector提供基于不同特定协议的实现，它接受解析请求，返回响应
+经Processor派遣请求至Engine进行处理
+
+以下进入容器层：
+容器时Tomcat用来处理请求的组件，
+容器内部的组件按照层级排列
+
+Engine:是容器的顶层组件
+Engine通过解析请求来决定将请求发送到哪一个Host
+
+Host:代表一个虚拟主机
+一个Engine可以支持对多个虚拟主机的请求
+
+Context:代表一个Web Application,是Tomcat最复杂的组件之一
+负责应用资源管理，应用类加载，Servlet管理，安全管理等
+
+Wrapper:容器的最底层组件，包裹住Servlet实例，负责管理Servlet实例的生
+命周期
+
+请求动态资源：
+服务器需要请求容器，容器请求Servlet，Servlet根据请求获取动态资源的值
+
